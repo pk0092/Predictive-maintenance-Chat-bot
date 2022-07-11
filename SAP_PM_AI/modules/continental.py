@@ -21,7 +21,6 @@ from sklearn.utils import class_weight
 
 from layer_utils import Attention
 
-
 class Continental(object):
     """Most functions are defined under this class."""
     def __init__(self, path):

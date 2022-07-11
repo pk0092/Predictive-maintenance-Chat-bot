@@ -1,0 +1,58 @@
+{% load static %}
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>AI SYSTEM</title>
+    <link rel="stylesheet" href="{% static "bootstrap/dist/css/bootstrap.min.css" %}" />
+    <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootswatch/3.3.7/flatly/bootstrap.min.css" /> -->
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body>
+    <nav style="background-color:orange"  class="navbar navbar-inverse">
+    <!-- <nav style="background-color:orange" class="navbar navbar-default"> -->
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                aria-expanded="false" aria-controls="navbar">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <div style="font-size: xx-large; color:black">
+                    <a class=" navbar-brand" href="{% url "downtimeML:index" %}">AI SYSTEM</a>
+            </div>
+
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="{% url "downtimeML:index" %}">DOWNTIME REASONS</a></li>
+            </ul>
+        </div>
+        <!--/.nav-collapse -->
+        </div>
+    </nav>
+
+    <script src="{% static "jquery/dist/jquery.min.js" %}"></script>
+    <script src="{% static "bootstrap/dist/js/bootstrap.min.js" %}"></script>
+    <script src="{% static "jquery.csrf.js" %}"></script>
+
+    {% block content %}
+    {% endblock %}
+
+    <hr>
+
+    <div class="container">
+        <footer>
+            <p>2019 &copy; <a href="http://icmesasv.cw01.contiwan.com:8778/iGate/wip" target=_blank">MES igate</a>
+            </p>
+        </footer>
+    </div>
+
+    {% block extra_body %}
+    {% endblock %}
+</body>
+
+</html>

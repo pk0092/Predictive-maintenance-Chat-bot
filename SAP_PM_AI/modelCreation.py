@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 
 import os
 import re
@@ -35,7 +36,6 @@ class Continental(object):
         self.num_equip = None
         self.num_chars = None
         self.max_seq_len = None
-
         self.tokenizer = None
 
     def read_data(self):
@@ -225,3 +225,112 @@ class Continental(object):
     @staticmethod
     def top5_acc(y_true, y_pred):
         return keras.metrics.top_k_categorical_accuracy(y_true, y_pred, k=5)
+
+
+if __name__ == '__main__':
+
+    from modelCreation import Continental
+
+    # Make data
+    path = './datasets/PM_fail&solution_data.xlsx'
+    cont = Continental(path)
+    top_k = 100
+    data = cont.read_data()
+    data = cont.filter_by_equip(data, equip_name=None)
+    data = cont.filter_by_topk_labels(data, top_k)
+    data = cont.insert_columns(data)
+    cont.save_data(data)
+
+    # Read data (example)
+    # data = pd.read_pickle('datasets/subdata_E-all_C-100.pkl')
+
+    # Make model inputs
+    X_char, X_equip, Y = cont.make_model_inputs(subdata=data)
+
+    # Save 'cont' instance (for later usage)
+    with open('./history/cont_instance.pkl', 'wb') as f:
+        pickle.dump(cont, f)
+
+    # Instantiate model
+    model = cont.build_model(use_equip_info=True)  # Equip 정보를 사용하고 싶은 경우에만 True 설정
+
+    # Randomly split data into train & test sets
+    train_indices, test_indices = train_test_split(
+        np.arange(len(Y)), test_size=0.2, shuffle=True,
+        random_state=123123
+    )
+    X_char_train, X_equip_train, Y_train = X_char[train_indices], X_equip[train_indices], Y[train_indices]
+    X_char_test, X_equip_test, Y_test = X_char[test_indices], X_equip[test_indices], Y[test_indices]
+
+    # Set class weights
+    cls_wgt = class_weight.compute_class_weight(
+        class_weight='balanced',
+        classes=np.unique(np.argmax(Y_train, axis=-1)),
+        y=np.argmax(Y_train, axis=-1)
+    )
+
+    # Set checkpoint callback
+    model_path = './history/model_top-{}.hdf5'.format(top_k)
+    chkpoint = keras.callbacks.ModelCheckpoint(model_path, save_best_only=True, save_weights_only=True)
+
+    # Train model
+    hist = model.fit(
+        [X_char_train, X_equip_train], Y_train,
+        epochs=1,
+        batch_size=256,
+        shuffle=True,
+        validation_split=0.1,
+        class_weight=cls_wgt,
+        verbose=2,
+        callbacks=[chkpoint]
+    )
+
+    # Save model
+    np.save('./history/hist_top-{}.npy'.format(top_k), hist.history)
+
+    # Load model
+    model.load_weights(model_path)
+
+    # Prediction on test set
+    Y_pred = model.predict([X_char_test, X_equip_test], batch_size=256)
+    cm = confusion_matrix(np.argmax(Y_test, axis=-1), np.argmax(Y_pred, axis=-1))
+    print(classification_report(np.argmax(Y_test, axis=-1), np.argmax(Y_pred, axis=-1)))
+
+    # Evaluation on test set
+    test_score = model.evaluate([X_char_test, X_equip_test], Y_test, batch_size=256, verbose=2)
+    print('test score (top-1, top-3, top5): ({:.3f}, {:.3f}, {:.3f})'.format(*test_score[1:]))
+
+    # Save final predictions (top-5)
+    test_table = []
+    for test_index, y_pred in zip(test_indices, Y_pred):
+
+        # Get top-5 predictions (labels & probabilities)
+        top_k_indices = np.argsort(y_pred)[::-1][:5]                    # Descending order
+        top_k_labels = cont.label2idx.inverse_transform(top_k_indices)  # integer label -> original string
+        top_k_proba = y_pred[top_k_indices]                             # probabilities
+
+        # Retrieve original text
+        sent = data['sentences'][test_index]
+
+        # Retrieve original index
+        original_index = data['Index'][test_index]
+
+        # Retrieve true label
+        true_label = data['labels'][test_index]
+
+        # Save values to dictionary
+        d = {
+            'text': sent,
+            'index': original_index,
+            'true': true_label
+        }
+        for i, (_, lb, pb) in enumerate(zip(top_k_indices, top_k_labels, top_k_proba)):
+            d.update(
+                {'top-{}-pred'.format(i + 1): lb,
+                    'top-{}-prob'.format(i + 1): pb}
+            )
+
+        test_table.append(d)
+
+    test_table = pd.DataFrame(test_table)
+    print('model test is done!')

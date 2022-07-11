@@ -1,0 +1,67 @@
+{% extends "downtimeML/layout.html" %}
+
+{% load bootstrap4 %}
+
+{% block content %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-sm-12">
+
+      <br/>
+
+      <form method="GET" action="{% url 'downtimeML:getDowntimeReason' %}" >
+
+          <!-- {% csrf_token %} -->
+          <div class="form-group">
+            <label for="select1">장비를 선택하세요</label>
+
+            <select class="form-control" id="catetoryselect" name="catetoryselect">
+                {% for category in categories %}
+                  <option value={{ category.ename }}>{{ category.name }}</option>
+                {% empty %}
+                  <option selected>Please register Categories</option>
+                {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="text1">키워드를 입력하세요!</label>
+            <textarea class="form-control" id="contexttext" name="contexttext" rows="1"></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">SUGGEST TO ME!</button>
+        </form>
+
+      <br/>
+
+      <h2>SUGGESTION LIST</h2>
+      <table border="1" class="table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>SUGGESTION</th>
+            <th>ACCURACY(%)</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for item in suggestions %}
+            <tr>
+              <td>{{ item.line }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.accuracy }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">No Suggestion from AI </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+      
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
